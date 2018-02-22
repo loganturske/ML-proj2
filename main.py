@@ -23,9 +23,9 @@ def take_square_root(a):
 
 def euclidean_dist(arr1, arr2):
 	total = 0
-	
-	for i in xrange(0,subtract_points(len(arr2),1)):
-		sub = subtract_points(arr1[i], arr2[i])
+
+	for x,y in zip(arr1[:-2],arr2[:-2]):
+		sub = subtract_points(x,y)
 		sqr = square_it(sub)
 		total = total + sqr
 	return take_square_root(total)
@@ -69,44 +69,53 @@ def read_spam_csv():
 def give_initial_random_k_means(num_of_k, num_of_dim, max_num):
 	return numpy.random.randint(max_num, size=(num_of_k, num_of_dim))
 
-def change_in_centroid(old, new):
+def change_in_centroids(old, new):
 	change = False
-	for i in xrange(0,subtract_points(len(old),1)):
-		diff = subtract_points(old[i], new[i])
-		diff = get_absolute_value(diff)
-		if diff > .05:
-			change = True
+	i = 0
+	for row in old.values:
+		arr1 = row[:-2]
+		arr2 = new.values[i][:-2]
+		for x,y in zip(arr1, arr2):
+			diff = subtract_points(x, y)
+			diff = get_absolute_value(diff)
+			if diff > .5:
+				change = True
+		i += 1
 	return change
 
-def change_in_any_centroids(old_centroids, new_centroids):
-	change = False
-	for index in xrange(0, subtract_points(len(old_centroids),1)):
-		if change_in_centroid(old_centroids[index], new_centroids[index]) is True:
-			return True
-	return False
 def find_closest_centroid(point, centroids):
 
 	argmin = None
 	chosen_centroid = None
-	index = 0
-	for cent in centroids:
-		if argmin is None:
-			argmin = euclidean_dist(point.values, cent)
-			chosen_centroid = index
-		if argmin > euclidean_dist(point.values, cent):
-			argmin = euclidean_dist(point.values, cent)
-			chosen_centroid = index
-		index += 1
+	i = 0
 
+	for index,cent in centroids.iterrows():
+		if argmin is None:
+			argmin = euclidean_dist(point.values, cent.values)
+			chosen_centroid = i
+		if euclidean_dist(point.values, cent) < argmin:
+			argmin = euclidean_dist(point.values, cent.values)
+			chosen_centroid = i
+		i += 1
+
+	# print "CHOSE: " + str(chosen_centroid)
 	return chosen_centroid
 
-def recalculate_new_centroid(d, old_cent_num, default_cent):
-	cluster = d.loc[d['cluster'] == old_cent_num]
-	new_centroid = cluster.mean(skipna=True)
-	for i in new_centroid.values:
-		if numpy.isnan(i):
-			return default_cent
-	return new_centroid.values[:-1]
+def recalculate_new_centroids(df, centroids):
+	print "START"
+	new_centroids = pandas.DataFrame()	
+	i = 0
+	for index,cent in centroids.iterrows():
+		clusters = df.loc[df['cluster'] == i]
+		centroid = clusters.mean(skipna=True)
+		new_centroids = new_centroids.append(centroid, ignore_index=True)
+		print new_centroids
+		i += 1
+	print "END"
+	new_centroids['Class'] = 0
+	print "QWERQERQWERQWER"
+	print new_centroids
+	return new_centroids
 
 def a_sub_i(point, df):
 	total = 0
@@ -124,14 +133,15 @@ def a_sub_i(point, df):
 def b_sub_i(point, df):
 	mini = None
 	clusters = df.drop_duplicates(subset='cluster')
-	print "CLUSTER"
-	print clusters
-	for c in clusters.iterrows():
-		x = c[1]['cluster']
+	for c in [0,1,2]:
+		me = point[1]['cluster']
+		
 		total = 0
 		num = 0
 		for row in df.iterrows():
-			if row[1]['cluster'] == x:
+
+			if row[1]['cluster'] != me:
+				print "ASDFASDFADF"
 				total += euclidean_dist(point[1].values[:-1], row[1].values[:-1])
 				num += 1
 		b = divide_a_by_b(total,num)
@@ -146,7 +156,10 @@ def silhouette_coefficient(point, df):
 	a = a_sub_i(point, df)
 	b = b_sub_i(point, df)
 	top = subtract_points(b, a)
+	# print "###"
+	# print top
 	bottom = get_max_of(a, b)
+	# print bottom
 	return divide_a_by_b(top, bottom)
 
 def overall_silhouette_coefficient(df):
@@ -155,57 +168,63 @@ def overall_silhouette_coefficient(df):
 	for row in df.iterrows():
 		total += silhouette_coefficient(row, df)
 		num += 1
+
 	return divide_a_by_b(total, num)
 
-def k_means(d,k):
+def k_means(df,k):
 
-	centroids = give_initial_random_k_means(k, get_num_columns(d)-1, get_max_value_of_data_set(d))
+	# centroids = give_initial_random_k_means(k, get_num_columns(d)-1, 2)
+	df['cluster'] = 1
+	centroids = df.sample(n=k)
+	centroid_change = True
+	new_centroids = None
 	print centroids
-	d = d.assign(cluster = 0)
-	change_in_centroids = True
-	while change_in_centroids:
-
-		for index,row in d.iterrows():
-			d.at[index,'cluster'] = find_closest_centroid(row, centroids)
-		new_centroids = centroids
-		for index in xrange(0, len(centroids)-1):
-			new_centroids[index] = recalculate_new_centroid(d, index, centroids[index])
-		change_in_centroids = change_in_any_centroids(centroids, new_centroids)
+	while centroid_change:
+		print "BEGIN"
+		for index,row in df.iterrows():
+			df = df.set_value(index, col='cluster', value=find_closest_centroid(row, centroids))
+		print "ASDF"
+		new_centroids = recalculate_new_centroids(df, centroids)
+		centroid_change = change_in_centroids(centroids, new_centroids)
 		centroids = new_centroids
 
 	print centroids
-	a = overall_silhouette_coefficient(d)
-	print a
-	return a
+	# a = overall_silhouette_coefficient(df)
+	# print a
+	# print centroids
+	# return a
 
 def stepwise_forward_feature_selection(data):
-	f_sub_0 = []
-	basePref = -100000
 	features = data.columns[:-1]
 	response = data.columns[-1]
+	f_sub_0 = []
+	basePref = -100000
 
-	selected = []
-	current_score, best_new_score = 0.0, 0.0
-
-	while features.empty != True and (current_score == best_new_score):
-		scores_with_candidates = []
+	while features.empty != True:
+		bestPerf = -100000
+		bestF = features[1]
 		for candidate in features:
-			selected.append(candidate)
-			full = selected + [response]
-			score = k_means(data[full],3)
-			print score
-			scores_with_candidates.append((score, candidate))
-		scores_with_candidates.sort()
-		best_new_score, best_candidate = scores_with_candidates.pop()
-		if current_score < best_new_score:
-			features.drop([best_candidate], axis=1)
-			selected.append(best_candidate)
-			current_score = best_new_score
-
-	print selected
+			f_sub_0.append(candidate)
+			full = f_sub_0 + [response]
+			print full
+			currPerf = k_means(data[full],3)
+			print currPerf
+			if currPerf > bestPerf:
+				bestPerf = currPerf
+				bestF = candidate
+			f_sub_0.remove(candidate)
+		if bestPerf > basePref:
+			basePref = bestPerf
+			features.drop([bestF])
+			f_sub_0.append(bestF)
+		else:
+			break
+	print bestPerf
+	print f_sub_0
 read_glass_csv()
 read_iris_csv()
 move_id_from_glass_dataframe()
 
-k_means(iris_data_set, 3)
+k_means(iris_data_set,3)
+# stepwise_forward_feature_selection(iris_data_set)
 # stepwise_forward_feature_selection(iris_data_set)
