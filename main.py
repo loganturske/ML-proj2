@@ -211,34 +211,43 @@ def k_means(df,k):
 	# print a
 	# print centroids
 	# return a
+def get_num_of_k(data):
+	arr = []
+	for j in range(len(data):
+		if data[j][-1] i
+			arr.append(data[j][-1])
 
-# def stepwise_forward_feature_selection(data):
-# 	features = data.columns[:-1]
-# 	response = data.columns[-1]
-# 	f_sub_0 = []
-# 	basePref = -100000
+	return arr.size
 
-# 	while features.empty != True:
-# 		bestPerf = -100000
-# 		bestF = features[1]
-# 		for candidate in features:
-# 			f_sub_0.append(candidate)
-# 			full = f_sub_0 + [response]
-# 			print full
-# 			currPerf = k_means(data[full],3)
-# 			print currPerf
-# 			if currPerf > bestPerf:
-# 				bestPerf = currPerf
-# 				bestF = candidate
-# 			f_sub_0.remove(candidate)
-# 		if bestPerf > basePref:
-# 			basePref = bestPerf
-# 			features.drop([bestF])
-# 			f_sub_0.append(bestF)
-# 		else:
-# 			break
-# 	print bestPerf
-# 	print f_sub_0
+def stepwise_forward_feature_selection(data):
+	
+	features = [data[j][:-1] for j in range(len(data))]
+	num_of_features = features[1].size
+
+	f_sub_0 = []
+	basePref = -100000
+
+	while features.size != 0:
+		bestPerf = -100000
+		bestF = features[1]
+		for candidate in features:
+			f_sub_0.append(candidate)
+	# 		full = f_sub_0 + [response]
+	# 		print full
+			currPerf = k_means(data,num_of_features)
+	# 		print currPerf
+	# 		if currPerf > bestPerf:
+	# 			bestPerf = currPerf
+	# 			bestF = candidate
+	# 		f_sub_0.remove(candidate)
+	# 	if bestPerf > basePref:
+	# 		basePref = bestPerf
+	# 		features.drop([bestF])
+	# 		f_sub_0.append(bestF)
+	# 	else:
+	# 		break
+	# print bestPerf
+	# print f_sub_0
 read_glass_csv()
 read_iris_csv()
 move_id_from_glass_dataframe()
@@ -312,11 +321,11 @@ def sil(points, clusters, k):
 		total += sil_coe(points[i][:-1], points, C, clusters, k)
 
 	return divide_a_by_b(total, d)
-def here():
+def k_means(data, k, num_of_features):
 	# C = give_initial_random_k_means(3, 5, 5)
 	# # Number of clusters
 	k = 3
-	X = iris_data_set.as_matrix()
+	X = data.as_matrix()
 
 	# # X coordinates of random centroids
 	# C_x = numpy.random.randint(0, 5, size=k)
@@ -349,8 +358,8 @@ def here():
 		error = dist(C, C_old, None)
 	print C
 	print sil(X,clusters,3)
-here()
-
+# here()
+stepwise_forward_feature_selection(iris_data_set.as_matrix())
 # k_means(iris_data_set,3)
 # stepwise_forward_feature_selection(iris_data_set)
 # stepwise_forward_feature_selection(iris_data_set)
