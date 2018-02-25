@@ -20,7 +20,7 @@ def get_max_of(a, b):
 		return a
 	return b
 def take_square_root(a):
-	return numpy.sqrt(a)
+	return numpy.sqrt(int(a))
 
 def euclidean_dist(arr1, arr2):
 	total = 0
@@ -70,296 +70,323 @@ def read_spam_csv():
 def give_initial_random_k_means(num_of_k, num_of_dim, max_num):
 	return numpy.random.randint(max_num, size=(num_of_k, num_of_dim))
 
-def change_in_centroids(old, new):
-	change = False
-	if 'Class' in old.columns:
-		old= old.drop(['Class'], axis=1)
-	if 'Class' in new.columns:
-		new = new.drop(['Class'], axis=1)
-	if 'cluster' in old.columns:
-		old = old.drop(['cluster'], axis=1)
-	if 'cluster' in new.columns:
-		new = new.drop(['cluster'], axis=1)
+# def change_in_centroids(old, new):
+# 	change = False
+# 	if 'Class' in old.columns:
+# 		old= old.drop(['Class'], axis=1)
+# 	if 'Class' in new.columns:
+# 		new = new.drop(['Class'], axis=1)
+# 	if 'cluster' in old.columns:
+# 		old = old.drop(['cluster'], axis=1)
+# 	if 'cluster' in new.columns:
+# 		new = new.drop(['cluster'], axis=1)
 
-	for row,row2 in zip(old.iterrows(),new.iterrows()):
-		print row.values
-		for col in row[0].columns:
-			diff = subtract_points(row[col], row2[col])
-			diff = get_absolute_value(diff)
-			if diff > .5:
-				change = True
-	return change
+# 	for row,row2 in zip(old.iterrows(),new.iterrows()):
+# 		print row.values
+# 		for col in row[0].columns:
+# 			diff = subtract_points(row[col], row2[col])
+# 			diff = get_absolute_value(diff)
+# 			if diff > .5:
+# 				change = True
+# 	return change
 
-def find_closest_centroid(point, centroids):
+# def find_closest_centroid(point, centroids):
 
-	argmin = None
-	chosen_centroid = None
-	i = 0
+# 	argmin = None
+# 	chosen_centroid = None
+# 	i = 0
 
-	for index,cent in centroids.iterrows():
-		if argmin is None:
-			argmin = euclidean_dist(point.values, cent.values)
-			chosen_centroid = i
-		if euclidean_dist(point.values, cent) < argmin:
-			argmin = euclidean_dist(point.values, cent.values)
-			chosen_centroid = i
-		i += 1
+# 	for index,cent in centroids.iterrows():
+# 		if argmin is None:
+# 			argmin = euclidean_dist(point.values, cent.values)
+# 			chosen_centroid = i
+# 		if euclidean_dist(point.values, cent) < argmin:
+# 			argmin = euclidean_dist(point.values, cent.values)
+# 			chosen_centroid = i
+# 		i += 1
 
-	# print "CHOSE: " + str(chosen_centroid)
-	return chosen_centroid
+# 	# print "CHOSE: " + str(chosen_centroid)
+# 	return chosen_centroid
 
-def recalculate_new_centroids(df, centroids):
+# def recalculate_new_centroids(df, centroids):
 
-	if 'Class' in centroids.columns:
-		centroids = centroids.drop(['Class'], axis=1)
-	new_centroids = pandas.DataFrame()	
-	i = 0
-	for index,cent in centroids.iterrows():
-		clusters = df.loc[df['cluster'] == i]
-		if clusters.empty:
-			new_centroids = new_centroids.append(cent, ignore_index=True)
-		else:
-			centroid = clusters.mean(skipna=True)
-			centroid['cluster'] = i
-			new_centroids = new_centroids.append(centroid, ignore_index=True)
-		i += 1
+# 	if 'Class' in centroids.columns:
+# 		centroids = centroids.drop(['Class'], axis=1)
+# 	new_centroids = pandas.DataFrame()	
+# 	i = 0
+# 	for index,cent in centroids.iterrows():
+# 		clusters = df.loc[df['cluster'] == i]
+# 		if clusters.empty:
+# 			new_centroids = new_centroids.append(cent, ignore_index=True)
+# 		else:
+# 			centroid = clusters.mean(skipna=True)
+# 			centroid['cluster'] = i
+# 			new_centroids = new_centroids.append(centroid, ignore_index=True)
+# 		i += 1
 
-	if 'Class' in new_centroids.columns:
-			new_centroids = new_centroids.drop(['Class'], axis=1)
-	return new_centroids
+# 	if 'Class' in new_centroids.columns:
+# 			new_centroids = new_centroids.drop(['Class'], axis=1)
+# 	return new_centroids
 
-def a_sub_i(point, df):
-	total = 0
-	num = 0
-
-	for index,row in df.iterrows():
-		if row['cluster'] == point['cluster']:
-			total += euclidean_dist(point, row)
-			num += 1
-	if num == 0:
-		return total
-	return divide_a_by_b(total,num)
-
-def b_sub_i(point, df, centroids):
-	mini = None
-	for index,row in centroids.iterrows():		
-		
-		if row['cluster'] != point['cluster']:
-			total = 0
-			num = 0
-			print df
-			for index,row2 in df.iterrows():
-				if row2['cluster'] == row['cluster']:
-					print "Alkit"
-					total += euclidean_dist(point, row2)
-					num += 1
-			print total
-			b = divide_a_by_b(total,num)
-			if mini == None:
-				mini = b
-				continue
-			if b < mini:
-				mini = b
-	return mini
-
-def silhouette_coefficient(point, df,centroids):
-	# print "####"
-	a = a_sub_i(point, df)
-	# print "a: " + str(a)
-	b = b_sub_i(point, df, centroids)
-	# print "b: " + str(b)
-	top = subtract_points(b, a)
-	# print "###"
-	# print top
-	bottom = get_max_of(a, b)
-	# print bottom
-	return divide_a_by_b(top, bottom)
-
-
-def overall_silhouette_coefficient(df, centroids):
-	total = 0
-	num = 0
-	for index,row in df.iterrows():
-		total += silhouette_coefficient(row, df, centroids)
-		num += 1
-
-	return divide_a_by_b(total, num)
-
-def k_means(df,k):
-
-	# centroids = give_initial_random_k_means(k, get_num_columns(d)-1, 2)
-	df['cluster'] = 1
-	centroids = df.sample(n=k)
-	centroid_change = 0
-	new_centroids = None
-	print centroids
-	while centroid_change < 5:
-		for index,row in df.iterrows():
-			# df = df.set_value(index, col='cluster', value=find_closest_centroid(row, centroids))
-			df.iloc[index]['cluster'] = find_closest_centroid(row, centroids)
-
-		new_centroids = recalculate_new_centroids(df, centroids)
-		centroid_change += 1# change_in_centroids(centroids, new_centroids)
-		centroids = new_centroids
-
-	print centroids
-	print df
-	# for index,row in centroids.iterrows():
-	# 	print "Cluster: " + str(row['cluster'])
-	# 	print df['cluster'] == row['cluster']
-	# a = overall_silhouette_coefficient(df, centroids)
-	# print a
-	# print centroids
-	# return a
+def remove_ele(arr, ele):
+	# Remove the element from the arr
+	index = numpy.argwhere(arr==ele)
+	arr = numpy.delete(arr, index, None)
+	return arr
 def get_num_of_k(data):
-	arr = []
-	for j in range(len(data):
-		if data[j][-1] i
-			arr.append(data[j][-1])
+	# Get the data and use as a matrix
+	data = data.as_matrix()
+	# Get all of the rows with just the last column
+	arr = [data[j][-1] for j in range(len(data))]
+	# Get all of the unique things that were in the last rows
+	# these should be the number of classes
+	k = numpy.unique(arr)
+	# Return the number of k
+	return k.size
 
-	return arr.size
-
-def stepwise_forward_feature_selection(data):
-	
-	features = [data[j][:-1] for j in range(len(data))]
-	num_of_features = features[1].size
-
-	f_sub_0 = []
-	basePref = -100000
-
-	while features.size != 0:
-		bestPerf = -100000
-		bestF = features[1]
-		for candidate in features:
-			f_sub_0.append(candidate)
-	# 		full = f_sub_0 + [response]
-	# 		print full
-			currPerf = k_means(data,num_of_features)
-	# 		print currPerf
-	# 		if currPerf > bestPerf:
-	# 			bestPerf = currPerf
-	# 			bestF = candidate
-	# 		f_sub_0.remove(candidate)
-	# 	if bestPerf > basePref:
-	# 		basePref = bestPerf
-	# 		features.drop([bestF])
-	# 		f_sub_0.append(bestF)
-	# 	else:
-	# 		break
-	# print bestPerf
-	# print f_sub_0
-read_glass_csv()
-read_iris_csv()
-move_id_from_glass_dataframe()
 
 def dist1(a, b):
+	# Get distance for points compared to centroids and 
+	# return the one that is the closest
+
+	# Set a minimim to a super high number
 	mini = 100000
 	i = 0
 	r = 0
+	# For each centroid which should be 'b'
 	for cent in b:
+		# Set a total to 0
 		total = 0
+		# Get calculation for under the square root 
 		for x,y in zip(a,cent):
 			sub = subtract_points(x,y)
 			sqr = square_it(sub)
 			total = total + sqr
 		t = take_square_root(total)
+		# If you are less than than the minimum, set it
+		# keep track of what centroid is closest
 		if t < mini:
 			r = i
 			mini = t
 		i += 1
+	# return centroid number that is closest
 	return r
 def dist(a, b, ax=1):
+	# This will get the distance between two vectors
 	return numpy.linalg.norm(a - b, axis=ax)
 
 def ai(point, points, C, clusters, k):
-	mini = 100000000
+
+	# Get all of the points that are in your clusters
 	other_points = [points[j][:-1] for j in range(len(points)) if clusters[j] == C]
+	# Set a total to 0
 	total = 0
+	# For each point in you cluster
 	for r in range(len(other_points)):
+		# Add to the total the distance to the other points
 		total += euclidean_dist(point, other_points[r])
-	final = divide_a_by_b(total, len(other_points))
-	if final < mini:
-		mini = final
-	return mini
+	# Divide the total by the number of points to get average distance
+	return divide_a_by_b(total, len(other_points))
+
+
 def bi(point, points, C, clusters, k):
+	# Set a super high minimum
 	mini = 100000000
+	# For each k, which is the number of centroids
 	for i in range(k):
-		# print "START: " + str(mini)
+		# If the centroid is the cluster you are assigned, skip it
 		if i == C:
 			continue
+		# Get all other points that are assigned different clusters
 		other_points = [points[j][:-1] for j in range(len(points)) if clusters[j] == i]
+		# If there are no other points, skip
 		if not other_points:
 			continue
+		# Set a total to 0
 		total = 0
+		# For each of the other points
 		for r in range(len(other_points)):
+			# Add to the total the distance to the other points
 			total += euclidean_dist(point, other_points[r])
 			# print "Total: " + str(total)
 
-		# print "ALGO: " + str(total) + " / " + str(len(other_points))
+		# Divide the total by the number of points
 		final = divide_a_by_b(total, len(other_points))
-		# print "FINAL: " + str(final)
-		# print "MINI: " + str(mini)
+		# If the final equation was less than the minimum, set it
 		if final < mini:
 			mini = final
 			# print "SETTING"
-	# print mini
+	# Return the minimum
 	return mini
 
 def sil_coe(point, points, C, clusters, k):
+	# Sillouette coeficient for the point passed in
+	# Get the b sub i
 	b_i = bi(point, points, C, clusters, k)
 	# print "B: " + str(b_i)
+
+	# Get the a sub i
 	a_i = ai(point, points, C, clusters, k)
 	# print "A: " + str(a_i)
+
+	# The top of the equation is b_sub_i minus a_sub_i
 	top = b_i - a_i
+	# The bottom of the equation is the maximum of either a_sub_i or b_sub_i
 	bottom = get_max_of(a_i, b_i)
+	# Return the top divided by the bottom
 	return divide_a_by_b(top, bottom)
-def sil(points, clusters, k):
+
+def overall_sil(points, clusters, k):
+	# This is the sillouette coefficient for the points given to it
+	# d is the number of points
 	d = len(points)
+	# Set a total to 0
 	total = 0
+	# for each 
 	for i in range(d):
+		# Set what cluster the point to evaluate is associated with
 		C = clusters[i]
+		# Add to the total
 		total += sil_coe(points[i][:-1], points, C, clusters, k)
-
+	# Return total divided by the number of points
 	return divide_a_by_b(total, d)
-def k_means(data, k, num_of_features):
-	# C = give_initial_random_k_means(3, 5, 5)
-	# # Number of clusters
-	k = 3
-	X = data.as_matrix()
 
-	# # X coordinates of random centroids
-	# C_x = numpy.random.randint(0, 5, size=k)
-	# # Y coordinates of random centroids
-	# C_y = numpy.random.randint(0, 5, size=k)
-	# C = numpy.array(list(zip(C_x, C_y)), dtype=numpy.float32)
-	C =  give_initial_random_k_means(3, 4, 5)
+
+def stepwise_backward_feature_selection(data, features):
+	
+	features= numpy.asarray(features.tolist()[:-1])
+	k = get_num_of_k(data)
+	f_sub_0 = features
+	basePref = -100000
+
+	while features.size != 1:
+		bestPerf = -100000
+		bestF = None
+		for candidate in features:
+			f_sub_0 = remove_ele(f_sub_0, candidate)
+			num_of_features = f_sub_0.size
+			currPerf = k_means(data,k,num_of_features)
+			if currPerf > bestPerf:
+				bestPerf = currPerf
+				bestF = candidate
+			f_sub_0 = numpy.append(f_sub_0, candidate)
+		if bestPerf > basePref:
+			basePref = bestPerf
+			features = remove_ele(features, bestF)
+			f_sub_0 = remove_ele(f_sub_0, bestF)
+		else:
+			break
+	print basePref
+	print f_sub_0
+
+def stepwise_forward_feature_selection(data, features):
+	# Get all of the features from data and remove the last column
+	features= numpy.asarray(features.tolist()[:-1])
+	# The number of classifiers there are
+	k = get_num_of_k(data)
+	# An empty array to put features
+	f_sub_0 = numpy.asarray([])
+	# The base performace that you will run against
+	basePref = -100000
+
+	# While you still have features to test out
+	while features.size != 0:
+		# Best preformance so far
+		bestPerf = -100000
+		# Best feature that you found so far
+		bestF = None
+		# For each feature in the features list
+		for candidate in features:
+			# Add the feature to the array to test the algo
+			f_sub_0 = numpy.append(f_sub_0, candidate)
+			# Number of features we are testing
+			num_of_features = f_sub_0.size
+			# Run the algo and get performance score back
+			currPerf = k_means(data,k,num_of_features)
+			# If the performace of the last run is better than the best so far
+			# set it. And make the best feature the one you just used
+			if currPerf > bestPerf:
+				bestPerf = currPerf
+				bestF = candidate
+			# Remove the element from the features to try
+			f_sub_0 = remove_ele(f_sub_0, candidate)
+		# If the best performance so far is better than the base
+		# set it then remove the element from the features to test
+		# then put the best feature in the set to try it
+		if bestPerf > basePref:
+			basePref = bestPerf
+			features = remove_ele(features, bestF)
+			f_sub_0 = numpy.append(f_sub_0, bestF)
+		else:
+			break
+	print "\t Silhouette Coefficient:" + str(basePref)
+	print "\t Features: "+ str(f_sub_0)
+
+def k_means(data, k, num_of_features):
+	# Make a matrix out of the data
+	X = data.as_matrix()
+	# Get k random points from the data
+	C =  X[numpy.random.choice(X.shape[0], k, replace=False), :]
+	# Remove the last col
+	C = [C[j][:-1] for j in range(len(C))]
+	# Turn it into a numpy array
+	C = numpy.asarray(C)
 	# To store the value of centroids when it updates
 	C_old = numpy.zeros(C.shape)
+	# Make an array that will assign clusters to each point
 	clusters = numpy.zeros(len(X))
-	print C
 	# Error func. - Distance between new centroids and old centroids
 	error = dist(C, C_old, None)
-	# Loop will run till the error becomes zero
-	while error != 0:
+	# Loop will run till the error becomes zero of 5 tries
+	tries = 0
+	while error != 0 and tries < 1:
 		# Assigning each value to its closest cluster
 		for i in range(len(X)):
-			# distances = dist1(X[i][:-1], C)
-			# cluster = numpy.argmin(distances)
+			# Get closest cluster in terms of distance
 			clusters[i] = dist1(X[i][:-1], C)
 		# Storing the old centroid values
 		C_old = deepcopy(C)
 		# Finding the new centroids by taking the average value
 		for i in range(k):
+			# Get all of the points that match the cluster you are on
 			points = [X[j][:-1] for j in range(len(X)) if clusters[j] == i]
+			# If there were no points assigned to cluster, put at origin
 			if not points:
-				C[i][:] =numpy.nan# numpy.random.randint(1, size=(1, 4))
+				C[i][:] = numpy.zeros(C[i].shape)
 			else:
+				# Get the average of all the points and put that centroid there
 				C[i] = numpy.mean(points, axis=0)
+		# Erro is the distance between where the centroids use to be and where they are now
 		error = dist(C, C_old, None)
-	print C
-	print sil(X,clusters,3)
-# here()
-stepwise_forward_feature_selection(iris_data_set.as_matrix())
+		# Increase tries
+		tries += 1
+	return overall_sil(X,clusters,k)
+
+read_glass_csv()
+read_iris_csv()
+move_id_from_glass_dataframe()
+read_spam_csv()
+print "Iris SFS: "
+stepwise_forward_feature_selection(iris_data_set, iris_data_set.columns)
+# print
+# print "Iris SBS: "
+# stepwise_backward_feature_selection(iris_data_set, iris_data_set.columns)
+
+# print 
+
+print "Glass SFS: "
+stepwise_forward_feature_selection(glass_data_set, glass_data_set.columns)
+# print
+# print "Glass SBS: "
+# stepwise_backward_feature_selection(glass_data_set, glass_data_set.columns)
+
+# print 
+
+# print "Spam SFS: "
+# stepwise_forward_feature_selection(spam_data_set, spam_data_set.columns)
+# print
+# print "Spam SBS: "
+# stepwise_backward_feature_selection(spam_data_set, spam_data_set.columns)
 # k_means(iris_data_set,3)
 # stepwise_forward_feature_selection(iris_data_set)
 # stepwise_forward_feature_selection(iris_data_set)
