@@ -276,8 +276,8 @@ def stepwise_backward_feature_selection(data, features):
 			f_sub_0 = remove_ele(f_sub_0, bestF)
 		else:
 			break
-	print basePref
-	print f_sub_0
+	print "\t Silhouette Coefficient:" + str(basePref)
+	print "\t Features: "+ str(f_sub_0)
 
 def stepwise_forward_feature_selection(data, features):
 	# Get all of the features from data and remove the last column
@@ -372,21 +372,20 @@ stepwise_forward_feature_selection(iris_data_set, iris_data_set.columns)
 # print "Iris SBS: "
 # stepwise_backward_feature_selection(iris_data_set, iris_data_set.columns)
 
-# print 
+print 
 
 print "Glass SFS: "
 stepwise_forward_feature_selection(glass_data_set, glass_data_set.columns)
-# print
+print
 # print "Glass SBS: "
 # stepwise_backward_feature_selection(glass_data_set, glass_data_set.columns)
 
 # print 
+#Take random sample
+print "Spam SFS:"
+spam_data_set = spam_data_set.sample(n=200,weights='spam',axis=0)
 
-# print "Spam SFS: "
-# stepwise_forward_feature_selection(spam_data_set, spam_data_set.columns)
+stepwise_forward_feature_selection(spam_data_set, spam_data_set.columns)
 # print
 # print "Spam SBS: "
 # stepwise_backward_feature_selection(spam_data_set, spam_data_set.columns)
-# k_means(iris_data_set,3)
-# stepwise_forward_feature_selection(iris_data_set)
-# stepwise_forward_feature_selection(iris_data_set)
